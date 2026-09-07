@@ -11,7 +11,7 @@ const responses = [
     suggestions: ["job"],
   },
   {
-    keywords: ["job", "work", "career"],
+    keywords: ["job", "work", "career", "occupation", "student"],
     reply: "Im a web developer student ",
     suggestions: ["hobbies"],
   },
