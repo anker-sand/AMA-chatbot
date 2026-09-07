@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Project</title>
+  <link rel="stylesheet" href="/css.css">
+</head>
+<body>
+
+  <main class="app">
+    <h1>Ask Me Anything</h1>
+
+    <section id="chat">
+      <% for (const message of messages) { %>
+        <article class="msg <%= message.type %>">
+          <span class="sender"><%= message.type === "question" ? "You" : "Bot" %>:</span>
+          <%= message.text %>
+          <% if (message.suggestions && message.suggestions.length) { %>
+            <div class="suggestions">Ask about
+              <% message.suggestions.forEach(function (suggestion, index) { %><span class="keyword"><%= suggestion %></span><%= index < message.suggestions.length - 1 ? ", " : "" %><% }) %>
+            </div>
+          <% } %>
+        </article>
+      <% } %>
+    </section>
+
+    <% if (error) { %>
+      <p role="alert" class="error"><%= error %></p>
+    <% } %>
+
+    <form method="POST" action="/ask" class="input-row">
+      <label for="question" class="sr-only">Stil dit spørgsmål her:</label>
+      <input id="question" name="question" type="text" placeholder="Ask me anything..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </main>
+
+</body>
+</html>
