@@ -9,7 +9,12 @@
 <body>
 
   <main class="app">
-    <h1>Ask Me Anything</h1>
+    <div class="app-header">
+      <h1>Ask Me Anything</h1>
+      <form method="POST" action="/clear-messages">
+        <button type="submit" class="reset-btn">Reset</button>
+      </form>
+    </div>
 
     <section id="chat">
       <% for (const message of messages) { %>
@@ -28,6 +33,13 @@
     <% if (error) { %>
       <p role="alert" class="error"><%= error %></p>
     <% } %>
+
+    <h2>Spørgsmål fordelt på emner</h2>
+    <ul class="stats">
+      <li>Greeting: <%= topicStats.greeting %></li>
+      <li>Hobbies: <%= topicStats.hobbies %></li>
+      <li>Job: <%= topicStats.job %></li>
+    </ul>
 
     <form method="POST" action="/ask" class="input-row">
       <label for="question" class="sr-only">Stil dit spørgsmål her:</label>
