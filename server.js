@@ -3,48 +3,57 @@ import express from "express";
 const app = express();
 const port = 3000;
 
+// Serverer statiske filer (CSS, billeder) fra public/
 app.use(express.static("public"));
+// Læser formulardata fra POST-requests ind i request.body
 app.use(express.urlencoded({ extended: true }));
+// Fortæller Express, at vi bruger EJS til at rendere HTML
 app.set("view engine", "ejs");
 
+// Array med alle botens svarregler: nøgleord, svaret og forslag til andre emner
 const answers = [
   {
-    category: "greeting",
-    keywords: ["hello", "hi", "hey"],
-    answer: "Hey! I can tell you a bit about myself.",
-    suggestions: ["hobbies", "job"],
+    category: "hilsen",
+    keywords: ["hej", "goddag", "halløj"],
+    answer: "Hej! Jeg kan fortælle lidt om mig selv.",
+    suggestions: ["fritid", "job"],
   },
   {
-    category: "hobbies",
-    keywords: ["hobby", "hobbies", "free time"],
-    answer: "In my free time I like playing guitar.",
+    category: "fritid",
+    keywords: ["fritid", "fritiden", "hobby", "hobbyer"],
+    answer: "I min fritid kan jeg godt lide at spille guitar.",
     suggestions: ["job"],
   },
   {
     category: "job",
-    keywords: ["job", "work", "career", "occupation", "student"],
-    answer: "I'm a web developer student.",
-    suggestions: ["hobbies"],
+    keywords: ["job", "arbejde", "karriere", "studerende"],
+    answer: "Jeg er webudvikler-studerende.",
+    suggestions: ["fritid"],
   },
 ];
 
+// Svaret vi bruger, når ingen regler matcher spørgsmålet
 const fallback = {
-  answer: "I don't have an answer for that yet.",
-  suggestions: ["hobbies", "job"],
+  answer: "Det har jeg ikke et svar på endnu.",
+  suggestions: ["fritid", "job"],
 };
 
+// Tæller hvor mange gange hver kategori er blevet spurgt om
 const topicStats = {
-  greeting: 0,
-  hobbies: 0,
+  hilsen: 0,
+  fritid: 0,
   job: 0,
 };
 
+// Fjerner usynlige kontroltegn fra brugerens input
 function sanitizeQuestion(input) {
   return input
     .split("")
     .filter((char) => char.charCodeAt(0) > 31 && char.charCodeAt(0) !== 127)
     .join("");
 }
+
+// Tæller hvor mange af de givne nøgleord der findes i spørgsmålet. 
 
 function countMatches(keywords, normalizedQuestion) {
   const matches = keywords.filter((keyword) =>
@@ -54,31 +63,18 @@ function countMatches(keywords, normalizedQuestion) {
   return matches.length;
 }
 
-function findBestAnswer(question) {
+// Finder alle regler i answers, der har mindst ét matchende nøgleord
+function findMatchingAnswers(question) {
   const normalizedQuestion = question.toLowerCase();
-  let bestScore = 0;
-  let bestAnswer = fallback.answer;
-  let bestCategory = "";
-  let bestSuggestions = fallback.suggestions;
+  const matches = answers.filter(
+    (answerGroup) => countMatches(answerGroup.keywords, normalizedQuestion) > 0
+  );
 
-  for (const answerGroup of answers) {
-    const score = countMatches(answerGroup.keywords, normalizedQuestion);
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestAnswer = answerGroup.answer;
-      bestCategory = answerGroup.category;
-      bestSuggestions = answerGroup.suggestions;
-    }
-  }
-
-  return {
-    answer: bestAnswer,
-    category: bestCategory,
-    suggestions: bestSuggestions,
-  };
+  // Ingen match -> brug standardsvaret i stedet
+  return matches.length > 0 ? matches : [fallback];
 }
 
+// Samtalehistorik: hver besked er { type: "question" | "answer", text, suggestions }
 const messages = [];
 
 app.get("/", (request, response) => {
@@ -91,23 +87,28 @@ app.post("/ask", (request, response) => {
   let error = "";
 
   if (!question) {
-    error = "Write a question before sending.";
+    error = "Skriv et spørgsmål, før du sender.";
   } else if (question.length > 280) {
-    error = "The question can be at most 280 characters.";
+    error = "Spørgsmålet må højst være 280 tegn.";
   } else {
     messages.push({ type: "question", text: question });
 
-    const result = findBestAnswer(question);
-    messages.push({ type: "answer", text: result.answer, suggestions: result.suggestions });
+    // Ét spørgsmål kan matche flere emner, så vi svarer på hvert af dem
+    const results = findMatchingAnswers(question);
+    for (const result of results) {
+      messages.push({ type: "answer", text: result.answer, suggestions: result.suggestions });
 
-    if (result.category) {
-      topicStats[result.category] = topicStats[result.category] + 1;
+      // Kun tæl statistik for rigtige matches, ikke standardsvaret
+      if (result.category) {
+        topicStats[result.category] = topicStats[result.category] + 1;
+      }
     }
   }
 
   response.render("index", { messages, error, topicStats });
 });
 
+// Tømmer samtalehistorikken og sender brugeren tilbage til forsiden
 app.post("/clear-messages", (request, response) => {
   messages.length = 0;
   response.redirect("/");
